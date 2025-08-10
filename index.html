@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Turisteo SDK – Documentation</title>
+  <link rel="icon" href="https://turisteo.com/wp-content/uploads/2025/02/Turisteo-.-Logo.png" type="image/png"/>
+  <meta name="color-scheme" content="dark light" />
+  <!-- External stylesheet (you said you moved it) -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand">
+        <button class="btn hamburger" aria-label="Open navigation" onclick="toggleSidebar()">☰</button>
+        <img src="https://turisteo.com/wp-content/uploads/2025/02/Turisteo-.-Logo.png" alt="Turisteo logo" />
+        <span class="title">Turisteo SDK • Docs</span>
+      </div>
+      <div class="actions">
+        <div class="search" role="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="11" cy="11" r="6.25" stroke="currentColor" stroke-width="1.5"/></svg>
+          <input id="search" placeholder="Search ( / )" aria-label="Search" />
+          <kbd>/</kbd>
+        </div>
+        <a class="btn primary" href="#install">Get Started</a>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="nav-group">
+        <span class="nav-label">Getting Started</span>
+        <nav class="nav">
+          <a href="#intro">Introduction</a>
+          <a href="#features">Features</a>
+          <a href="#install">Installation</a>
+          <a href="#quickstart">Quickstart</a>
+        </nav>
+      </div>
+      <div class="nav-group">
+        <span class="nav-label">Usage</span>
+        <nav class="nav">
+          <a href="#web-react">Web (React)</a>
+          <a href="#react-native">React Native</a>
+          <a href="#node">Node</a>
+          <a href="#raw-call">Raw API Call</a>
+        </nav>
+      </div>
+      <div class="nav-group">
+        <span class="nav-label">Reference</span>
+        <nav class="nav">
+          <a href="#tokens">Token Storage</a>
+          <a href="#errors">Error Handling</a>
+          <a href="#api">API Surface</a>
+          <a href="#semantics">Auth API</a>
+          <a href="#auth-semantics">Auth Semantic</a>
+          <a href="#api-social">Social API</a>
+          <a href="#semantics-social">Social Semantic</a>
+        </nav>
+      </div>
+      <div class="footer">© <span id="year"></span> Turisteo. All rights reserved.</div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main" id="content">
+      <section id="intro" class="hero card">
+        <h1>Turisteo SDK for TypeScript</h1>
+        <p class="lede">Typed, modular, and developer-friendly SDK to interact with the Turisteo platform from web, mobile, or backend apps. Built for performance and DX.</p>
+      </section>
+
+      <section id="features" class="card">
+        <h2>✨ Features</h2>
+        <ul>
+          <li>Full TypeScript support with rich types, interfaces, and enums.</li>
+          <li>Clean, modular design and adapter-based token storage.</li>
+          <li>DTO-driven request/response contracts for safety and clarity.</li>
+          <li>Guest sessions and centralized <code>ApiError</code> handling.</li>
+          <li>Escape hatch via <code>sdk.call()</code> for not‑yet‑wrapped endpoints.</li>
+        </ul>
+      </section>
+
+<section id="install" class="card">
+          <h2>🚀 Installation</h2>
+          <p>Create an <code>.npmrc</code> with your GitHub PAT (scope: <code>read:packages</code>):</p>
+<pre><button class="btn copy" data-copy="npmrc">Copy</button><code id="npmrc">@turisteo:registry=https://npm.pkg.github.com/
+//npm.pkg.github.com/:_authToken=YOUR_TOKEN</code></pre>
+          <p><strong>Do not commit</strong> your <code>.npmrc</code>.</p>
+        </section>
+
+        <section id="quickstart" class="card">
+          <h2>⚡ Quickstart</h2>
+<pre><button class="btn copy" data-copy="quick">Copy</button><code id="quick">import { initializeNodeSDK, type TuristeoSDKOptions } from "@turisteo/turisteo-sdk-ts";
+import { MemoryStorageAdapter } from "@turisteo/turisteo-sdk-ts/core/token-manager/adapters/memory-storage.adapter";
+
+const config: TuristeoSDKOptions = {
+  apiKey: "test-api-key",
+  clientId: "test-project-key",
+  bundleId: "com.turisteo.test",
+  storage: "sqlite",
+  mock: false,
+  appVersion: "1.0.0",
+  environment: "local",
+  debug: true,
+  cache: { enabled: true },
+};
+
+const sdk = await initializeNodeSDK(config, new MemoryStorageAdapter());</code></pre>
+        </section>
+
+      <!-- WEB (React) -->
+      <section id="web-react" class="card">
+        <h2>🌐 Web (React)</h2>
+        <p>Share one browser SDK instance across the app with a typed context:</p>
+<pre><button class="btn copy" data-copy="react-web">Copy</button><code id="react-web">import { createContext, ReactNode, useContext } from 'react';
+import { initializeBrowserSDK, TuristeoSDK, TuristeoSDKOptions } from '@turisteo/turisteo-sdk-ts/dist/browser';
+
+const TuristeoSDKContext = createContext<TuristeoSDK | null>(null);
+export function useTuristeo() {
+  const ctx = useContext(TuristeoSDKContext);
+  if (!ctx) throw new Error('useTuristeo must be used within a TuristeoProvider');
+  return ctx;
+}
+
+let sdkInstance: TuristeoSDK | null = null;
+export async function initializeSharedSDK() {
+  if (sdkInstance) return sdkInstance;
+  const config: TuristeoSDKOptions = {
+    apiKey: import.meta.env.VITE_API_KEY || 'dev-api-key',
+    clientId: import.meta.env.VITE_CLIENT_ID || 'dev-client-id',
+    platform: import.meta.env.VITE_PLATFORM || 'web',
+    storage: import.meta.env.VITE_STORAGE || 'in-memory',
+    storagePath: import.meta.env.VITE_STORAGE_PATH || './data.db',
+    appVersion: '1.0.0',
+    environment: (import.meta.env.VITE_APP_ENV as 'local' | 'local') || 'development',
+    bundleId: import.meta.env.VITE_BUNDLE_ID || 'com.turisteo.dev-cp-vendor-admin',
+    cache: { enabled: true, storage: 'in-memory' },
+  };
+  sdkInstance = await initializeBrowserSDK(config);
+  return sdkInstance;
+}
+
+export function TuristeoProvider({ sdk, children }: { sdk: TuristeoSDK; children: ReactNode; }) {
+  return <TuristeoSDKContext.Provider value={sdk}>{children}</TuristeoSDKContext.Provider>;
+}</code></pre>
+
+<pre><button class="btn copy" data-copy="react-app">Copy</button><code id="react-app">import { useEffect, useState } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { TuristeoSDK } from '@turisteo/turisteo-sdk-ts/dist/browser';
+import { ScreenLoader } from './components/common/screen-loader';
+import { initializeSharedSDK, TuristeoProvider } from './lib/turisteo/sdk';
+
+export function App() {
+  const queryClient = new QueryClient();
+  const [sdk, setSdk] = useState<TuristeoSDK | null>(null);
+  useEffect(() => { initializeSharedSDK().then(setSdk); }, []);
+  if (!sdk) return <ScreenLoader/>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TuristeoProvider sdk={sdk}>
+        <BrowserRouter>{/* ... */}</BrowserRouter>
+      </TuristeoProvider>
+    </QueryClientProvider>
+  );
+}</code></pre>
+      </section>
+
+      <!-- React Native -->
+      <section id="react-native" class="card">
+        <h2>📱 React Native</h2>
+        <p>Initialize once, coerce booleans from env, and expose via context:</p>
+<pre><button class="btn copy" data-copy="rn">Copy</button><code id="rn">import { createContext, useContext, ReactNode, FC } from 'react';
+import { initializeReactNativeSDK, TuristeoSDK, TuristeoSDKOptions } from '@turisteo/turisteo-sdk-ts/react-native';
+import Config from 'react-native-config';
+
+type SDKContextType = TuristeoSDK | null;
+const TuristeoSDKContext = createContext<SDKContextType>(null);
+export function useTuristeo(): TuristeoSDK { const c = useContext(TuristeoSDKContext); if (!c) throw new Error('useTuristeo must be used within a TuristeoProvider'); return c; }
+
+let sdkInstance: TuristeoSDK | null = null;
+const toBoolean = (val?: string, def = true) => (val === undefined ? def : val.toLowerCase() === 'true');
+
+export async function initializeSharedSDK(): Promise<TuristeoSDK> {
+  if (sdkInstance) return sdkInstance;
+  const config: TuristeoSDKOptions = {
+    apiKey: Config.SDK_APP_API_KEY || 'dev-api-key',
+    appVersion: Config.SDK_APP_VERSION || '1.0.0',
+    platform: Config.SDK_APP_APP_PLATFORM,
+    environment: (Config.SDK_APP_APP_ENV as 'local' | 'development') || 'development',
+    bundleId: Config.SDK_APP_BUNDLE_ID || 'com.turisteo.app.dev',
+    clientId: Config.SDK_APP_CLIENT_ID || 'dev-turisteo-react-native',
+    cache: { enabled: toBoolean(Config.SDK_APP_ENABLE_CACHE, true), storage: 'in-memory' },
+  };
+  sdkInstance = await initializeReactNativeSDK(config);
+  return sdkInstance;
+}
+
+export const TuristeoProvider: FC<{ sdk: TuristeoSDK; children: ReactNode; }> = ({ sdk, children }) => (
+  <TuristeoSDKContext.Provider value={sdk}>{children}</TuristeoSDKContext.Provider>
+);</code></pre>
+
+<pre><button class="btn copy" data-copy="rn-app">Copy</button><code id="rn-app">import { useEffect, useState } from 'react';
+import { TuristeoSDK } from '@turisteo/turisteo-sdk-ts/react-native';
+import { initializeSharedSDK, TuristeoProvider } from '@lib/turisteo/sdk';
+
+const RNApp = () => {
+  const [sdk, setSdk] = useState<TuristeoSDK | null>(null);
+  useEffect(() => { initializeSharedSDK().then(setSdk); }, []);
+  if (!sdk) return null;
+  return (
+    <TuristeoProvider sdk={sdk}>
+      {/* Providers and App */}
+    </TuristeoProvider>
+  );
+};</code></pre>
+      </section>
+
+      <!-- Node -->
+      <section id="node" class="card">
+        <h2>🖥️ Node</h2>
+        <p>Server-side bootstrap with optional <code>.env</code>:</p>
+<pre><button class="btn copy" data-copy="node">Copy</button><code id="node">import dotenv from 'dotenv';
+dotenv.config();
+
+import { initializeNodeSDK, type TuristeoSDKOptions } from '@turisteo/turisteo-sdk-ts';
+
+async function main() {
+  const config: TuristeoSDKOptions = {
+    apiKey: process.env.API_KEY || 'test-api-key',
+    clientId: process.env.CLIENT_ID || 'test-project-key',
+    bundleId: 'com.turisteo.test',
+    platform: 'node',
+    appVersion: '1.0.0',
+    environment: 'local',
+    baseUrl: 'http://localhost',
+    storage: 'sqlite',
+    mock: false,
+    cache: { enabled: true },
+  };
+
+  const turisteo = await initializeNodeSDK(config);
+  try {
+    const isLoggedIn = await turisteo.auth.session.isAuthenticated();
+    if (!isLoggedIn) {
+      await turisteo.auth.session.login({
+        identifier: process.env.IDENTIFIER || 'user@example.com',
+        password: process.env.PASSWORD || 'password123',
+      });
+    }
+
+    const spots = await turisteo.call({ method: 'GET', path: '/spots', requiresAuth: false, debug: true });
+    console.log(spots);
+  } catch (err) {
+    console.error('An error occurred:', err);
+  }
+}
+
+main();</code></pre>
+      </section>
+
+      <!-- Raw Call (Escape Hatch) -->
+      <section id="raw-call" class="card">
+  <h2>🔧 Raw API Calls (Escape Hatch)</h2>
+  <p>
+    Use <code>sdk.call&lt;T&gt;()</code> for endpoints not yet wrapped by semantic methods. It respects your SDK
+    configuration (auth, headers, base URL/version, cache, debug) and preserves strong typing via the generic
+    <code>T</code> and the <code>expects</code> hint.
+  </p>
+
+  <div class="grid cols-1">
+    <div class="card">
+      <h3>Signature</h3>
+<pre><code>public async call&lt;T = any&gt;(config: RequestConfig &amp; { expects: 'array' }): Promise&lt;T[] | null&gt;
+public async call&lt;T = any&gt;(config: RequestConfig &amp; { expects: 'single' }): Promise&lt;T | null&gt;
+public async call&lt;T = any&gt;(config: RequestConfig): Promise&lt;T | T[] | null&gt;</code></pre>
+      <p class="lede">If <code>expects</code> is omitted, return type can be <code>T | T[] | null</code>.</p>
+    </div>
+
+    <div class="card">
+      <h3>RequestConfig</h3>
+<pre><code>type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+interface RequestConfig&lt;T = any&gt; {
+  method: HttpMethod;              // HTTP verb
+  path: string;                    // relative path e.g. "spots?take=10"
+  body?: any;                      // payload for POST/PUT
+  requiresAuth?: boolean;          // attach access token if available
+  headers?: Record&lt;string, string&gt;;// per-call headers
+  debug?: boolean | DebugOptions;  // enable logs for this call
+  cache?: {
+    ttl?: number;                  // override default TTL (seconds)
+    forceRefresh?: boolean;        // bypass cache for this call
+  };
+}</code></pre>
+      <p class="lede">Caching, auth, and debug inherit from the SDK instance but can be overridden per call.</p>
+    </div>
+  </div>
+
+  <details open>
+    <summary><strong>Behavior</strong></summary>
+    <ul>
+      <li><strong>Base URL &amp; Version:</strong> The SDK’s <code>baseUrl</code> and optional <code>version</code> (from initialization) are applied before <code>path</code>.</li>
+      <li><strong>Auth:</strong> If <code>requiresAuth</code> is true, the SDK adds the bearer token via <code>getAccessToken()</code>. On expiry, <code>onTokenExpired()</code> (if provided) is invoked.</li>
+      <li><strong>Caching:</strong> Controlled by SDK <code>cache</code> options (enabled, ttl, storage, storagePath). Per-call <code>cache.ttl</code> overrides default; <code>forceRefresh</code> skips the cache.</li>
+      <li><strong>Debug:</strong> Per-call <code>debug</code> or SDK-wide <code>debug</code>/<code>DebugOptions</code> emits HTTP/SDK logs.</li>
+      <li><strong>Typing:</strong> Use <code>call&lt;YourType&gt;()</code> with <code>expects</code> = <code>'single'</code> or <code>'array'</code> to lock the return shape.</li>
+    </ul>
+  </details>
+
+  <h3>Examples</h3>
+
+  <div class="grid">
+    <div class="card">
+      <h4>GET list (expects array)</h4>
+<pre><button class="btn copy" data-copy="raw-get-array">Copy</button><code id="raw-get-array">import type { Spot } from '@turisteo/turisteo-sdk-ts/types';
+
+const spots = await sdk.call&lt;Spot&gt;({
+  method: 'GET',
+  path: 'spots?take=10',
+  requiresAuth: false,
+  expects: 'array',
+});
+// spots: Spot[] | null</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>GET single (paginated wrapper)</h4>
+<pre><button class="btn copy" data-copy="raw-get-single">Copy</button><code id="raw-get-single">import type { PaginatedResult, Comment } from '@turisteo/turisteo-sdk-ts/types';
+
+const comments = await sdk.call&lt;PaginatedResult&lt;Comment&gt;&gt;({
+  method: 'GET',
+  path: 'spots?take=10',
+  requiresAuth: false,
+  debug: true,
+  expects: 'single',
+});
+// comments: PaginatedResult<Comment> | null</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>POST with body</h4>
+<pre><button class="btn copy" data-copy="raw-post">Copy</button><code id="raw-post">type CreatePostDto = { text: string };
+
+type Created = { id: string; text: string };
+
+const created = await sdk.call&lt;Created&gt;({
+  method: 'POST',
+  path: 'social/posts',
+  requiresAuth: true,
+  headers: { 'Content-Type': 'application/json' },
+  body: { text: 'Hello Turisteo!' } satisfies CreatePostDto,
+  expects: 'single',
+});
+// created: Created | null</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Per-call cache control</h4>
+<pre><button class="btn copy" data-copy="raw-cache">Copy</button><code id="raw-cache">// Override TTL and force network fetch
+const fresh = await sdk.call&lt;unknown&gt;({
+  method: 'GET',
+  path: 'spots/nearby?lat=18.4&lng=-69.9',
+  cache: { ttl: 120, forceRefresh: true },
+  expects: 'single',
+});</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Custom headers</h4>
+<pre><button class="btn copy" data-copy="raw-headers">Copy</button><code id="raw-headers">const data = await sdk.call&lt;unknown&gt;({
+  method: 'GET',
+  path: 'spots',
+  headers: { 'x-client-id': 'dashboard', 'accept-language': 'en-US' },
+  expects: 'single',
+});</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Error handling</h4>
+<pre><button class="btn copy" data-copy="raw-errors">Copy</button><code id="raw-errors">try {
+  const result = await sdk.call&lt;unknown&gt;({ method: 'GET', path: 'spots', expects: 'single' });
+} catch (e) {
+  // Network or SDK-level error; SDK raises ApiError consistently
+  console.error(e);
+}</code></pre>
+    </div>
+  </div>
+
+  <details>
+    <summary><strong>Tips</strong></summary>
+    <ul>
+      <li>Use <code>expects: 'array'</code> when the endpoint returns a list to keep strict typing (e.g., <code>Spot[]</code>).</li>
+      <li>Prefer relative <code>path</code> (e.g., <code>"spots"</code>, <code>"social/posts"</code>); the SDK prefixes <code>baseUrl</code> and optional <code>version</code>.</li>
+      <li>For authenticated calls, set <code>requiresAuth: true</code>; the SDK will retrieve and attach the token.</li>
+      <li>Turn on <code>debug: true</code> (or a specific <code>DebugOptions</code> field) to inspect the HTTP request/response.</li>
+      <li>Fine-tune caching globally via SDK options (<code>cache.enabled</code>, <code>ttl</code>, <code>max</code>, <code>storage</code>, <code>storagePath</code>) or per call via <code>cache</code>.</li>
+    </ul>
+  </details>
+</section>
+
+
+      <!-- Token / Errors / API Surface -->
+      <!-- TOKEN STORAGE SECTION ONLY -->
+<section id="tokens" class="card">
+  <h2>🔑 Token Storage</h2>
+  <p>
+    Token handling is centralized by <code>TokenManager</code> with a pluggable <code>TokenStorageAdapter</code>.
+    The manager persists tokens + expiration, exposes helpers to check lifetime, and can proactively refresh when
+    nearing expiry via a caller-provided <code>refreshFn</code>.
+  </p>
+
+  <div class="grid cols-1">
+    <div class="card">
+      <h3>Interfaces</h3>
+<pre><button class="btn copy" data-copy="tokens-interfaces">Copy</button><code id="tokens-interfaces">export interface TokenStorageAdapter {
+  getToken(): Promise<string | null>;
+  getRefreshToken(): Promise<string | null>;
+  getExpiresAt(): Promise<number | null>;
+  set(token: string, refresh: string, expiresAt: number): Promise<void>;
+  clear(): Promise<void>;
+}</code></pre>
+      <p class="lede">Bring your own storage: memory, SecureStore/Keychain, AsyncStorage, SQLite, etc.</p>
+    </div>
+
+    <div class="card">
+      <h3>Lifecycle</h3>
+      <ul>
+        <li><code>TokenManager.use(adapter)</code> → sets the adapter and loads <code>expiresAt</code> if present.</li>
+        <li><code>TokenManager.setConfig({ refreshThreshold, debug })</code> → sets debug and refresh window.</li>
+        <li><code>TokenManager.set(token, refresh, expiresIn)</code> → persists tokens and computes <code>expiresAt</code>.</li>
+        <li><code>TokenManager.validateOrRefresh(refreshFn)</code> → if close to expiry and a refresh token exists, calls <code>refreshFn</code>.</li>
+        <li><code>TokenManager.clear()</code> → clears tokens and resets expiration state.</li>
+      </ul>
+    </div>
+  </div>
+
+  <details open>
+    <summary><strong>Behavior & Config</strong></summary>
+    <ul>
+      <li><strong>Refresh threshold:</strong> configured in <em>seconds</em> via <code>setConfig({ refreshThreshold })</code>; internally stored in ms.</li>
+      <li><strong>Debug logs:</strong> enable with <code>setConfig({ debug: true })</code>; logs are printed via the SDK’s <code>Logger</code>.</li>
+      <li><strong>Expiration source:</strong> on <code>use()</code>, the manager reads a persisted <code>expiresAt</code> from the adapter (if any).</li>
+      <li><strong>Validation rule:</strong> <code>validateOrRefresh()</code> does nothing if there is no access token. If time remaining &lt; threshold <em>and</em> a refresh token exists, it awaits your <code>refreshFn()</code>.</li>
+      <li><strong>Time helpers:</strong> <code>getTimeUntilExpiration()</code>, <code>getRefreshThreshold()</code>, and <code>getExpiresAt()</code> provide visibility into token state.</li>
+    </ul>
+  </details>
+
+  <h3>Methods</h3>
+<pre><button class="btn copy" data-copy="tokens-methods">Copy</button><code id="tokens-methods">class TokenManager {
+  static async use(adapter: TokenStorageAdapter): Promise<void>;
+  static setConfig(cfg: { refreshThreshold?: number; debug?: boolean }): void;
+  static async set(token: string, refresh: string, expiresIn: number): Promise<void>;
+  static async getToken(): Promise<string | null>;
+  static async getRefreshToken(): Promise<string | null>;
+  static async validateOrRefresh(refreshFn: () => Promise<void>): Promise<void>;
+  static getTimeUntilExpiration(): number;        // ms remaining (0 if unknown)
+  static getRefreshThreshold(): number;           // ms threshold
+  static async getExpiresAt(): Promise<number | null>;
+  static async clear(): Promise<void>;
+}</code></pre>
+
+  <h3>Adapters (examples)</h3>
+  <div class="grid cols-1">
+    <div class="card">
+      <h4>In‑Memory (Web/Node)</h4>
+<pre><button class="btn copy" data-copy="adapter-memory">Copy</button><code id="adapter-memory">export const MemoryAdapter = (): TokenStorageAdapter => {
+  let t: string | null = null, r: string | null = null, e: number | null = null;
+  return {
+    async getToken() { return t; },
+    async getRefreshToken() { return r; },
+    async getExpiresAt() { return e; },
+    async set(token, refresh, expiresAt) { t = token; r = refresh; e = expiresAt; },
+    async clear() { t = r = null; e = 0; },
+  };
+};</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>React Native (AsyncStorage)</h4>
+<pre><button class="btn copy" data-copy="adapter-rn">Copy</button><code id="adapter-rn">import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const KEY = {
+  token: 'turisteo.token',
+  refresh: 'turisteo.refresh',
+  exp: 'turisteo.expiresAt',
+};
+
+export const RNStorageAdapter = (): TokenStorageAdapter => ({
+  async getToken() { return (await AsyncStorage.getItem(KEY.token)) || null; },
+  async getRefreshToken() { return (await AsyncStorage.getItem(KEY.refresh)) || null; },
+  async getExpiresAt() { return Number(await AsyncStorage.getItem(KEY.exp)) || null; },
+  async set(token, refresh, expiresAt) {
+    await AsyncStorage.multiSet([[KEY.token, token],[KEY.refresh, refresh],[KEY.exp, String(expiresAt)]]);
+  },
+  async clear() { await AsyncStorage.multiRemove([KEY.token, KEY.refresh, KEY.exp]); },
+});</code></pre>
+    </div>
+  </div>
+
+  <h3>Usage</h3>
+  <div class="grid cols-1">
+    <div class="card">
+      <h4>Web / React</h4>
+<pre><button class="btn copy" data-copy="usage-web">Copy</button><code id="usage-web">import { TokenManager } from '@turisteo/turisteo-sdk-ts/core/token-manager';
+import { MemoryAdapter } from './adapters/memory';
+
+await TokenManager.use(MemoryAdapter());
+TokenManager.setConfig({ refreshThreshold: 20, debug: false }); // seconds
+
+// later, after login:
+await TokenManager.set(accessToken, refreshToken, /* expiresIn */ 3600);
+
+// on app focus / interval:
+await TokenManager.validateOrRefresh(async () => {
+  // call your refresh endpoint and update tokens
+});</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>React Native</h4>
+<pre><button class="btn copy" data-copy="usage-rn">Copy</button><code id="usage-rn">import { TokenManager } from '@turisteo/turisteo-sdk-ts/core/token-manager';
+import { RNStorageAdapter } from './adapters/rn-async-storage';
+
+await TokenManager.use(RNStorageAdapter());
+TokenManager.setConfig({ refreshThreshold: 20, debug: false });
+
+// after login
+await TokenManager.set(accessToken, refreshToken, 3600);
+
+// e.g., on AppState change to 'active'
+await TokenManager.validateOrRefresh(async () => { /* refresh flow */ });</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Node</h4>
+<pre><button class="btn copy" data-copy="usage-node">Copy</button><code id="usage-node">import { TokenManager } from '@turisteo/turisteo-sdk-ts/core/token-manager';
+import Keyv from 'keyv';
+
+const store = new Keyv();
+const NodeAdapter = (): TokenStorageAdapter => ({
+  async getToken() { return (await store.get('t')) || null; },
+  async getRefreshToken() { return (await store.get('r')) || null; },
+  async getExpiresAt() { return (await store.get('e')) || null; },
+  async set(t, r, e) { await store.set('t', t); await store.set('r', r); await store.set('e', e); },
+  async clear() { await store.delete('t'); await store.delete('r'); await store.delete('e'); },
+});
+
+await TokenManager.use(NodeAdapter());
+TokenManager.setConfig({ refreshThreshold: 20, debug: false });</code></pre>
+    </div>
+  </div>
+
+  <details>
+    <summary><strong>Tips</strong></summary>
+    <ul>
+      <li>Store <code>expiresAt</code> as an absolute epoch (ms) — <code>TokenManager.set()</code> calculates this from <code>expiresIn</code>.</li>
+      <li>Use <code>validateOrRefresh()</code> on app start, resume, or before critical calls to keep sessions fresh.</li>
+      <li>Call <code>clear()</code> on logout to remove tokens from storage.</li>
+      <li>Toggle verbose logs with <code>setConfig({ debug: true })</code> while developing.</li>
+    </ul>
+  </details>
+</section>
+
+
+     <section id="errors" class="card">
+  <h2>🧯 API Error Handling</h2>
+  <p>
+    The SDK provides a unified <code>ApiError</code> class to wrap HTTP and application-level errors. This ensures consistent
+    error handling and allows developers to branch logic based on HTTP status codes and error messages.
+  </p>
+
+  <h3>Class Definition</h3>
+  <pre><code>export class ApiError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}</code></pre>
+
+  <h3>When It's Thrown</h3>
+  <ul>
+    <li>When an HTTP response status code is outside the 2xx range.</li>
+    <li>When the API signals an application-specific error condition.</li>
+    <li>When a network or parsing error is caught and wrapped by the SDK.</li>
+  </ul>
+
+  <h3>Example Usage</h3>
+  <pre><code>try {
+  const spots = await sdk.call({
+    method: 'GET',
+    path: 'spots',
+    requiresAuth: true,
+    expects: 'array',
+  });
+} catch (err) {
+  if (err instanceof ApiError) {
+    console.error(`API Error (${err.statusCode}):`, err.message);
+    if (err.statusCode === 401) {
+      // Handle authentication errors
+    }
+  } else {
+    console.error('Unexpected error:', err);
+  }
+}</code></pre>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Always check <code>err instanceof ApiError</code> before handling.</li>
+    <li>Use <code>statusCode</code> for branching logic (e.g., 400 vs 401 vs 500).</li>
+    <li>Enable SDK <code>debug</code> mode in development to log detailed error information.</li>
+  </ul>
+</section>
+
+
+      <section id="api" class="card">
+  <h2>📚 API Surface</h2>
+  <p>
+    The SDK exposes typed clients organized by domain. Below are the primary namespaces and their responsibilities.
+    Each client uses the shared <code>HttpClient</code>, integrates with <code>TokenManager</code> when needed, and
+    accepts a <code>refreshTokenFn</code> (for proactive refresh) where applicable.
+  </p>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>auth</h3>
+      <ul>
+        <li><code>auth.session</code> — login, logout, refresh, and session state (<code>SessionClient</code>).</li>
+        <li><code>auth.account</code> — account registration and profile (<code>AccountClient</code>).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>social</h3>
+      <ul>
+        <li><code>social.post</code> — posts & comments via a base client (<em>create, like, unlike, edit, delete, addComment, getComments</em>).</li>
+      </ul>
+    </div>
+  </div>
+
+  <details>
+    <summary><strong>Shared Behaviors</strong></summary>
+    <ul>
+      <li><strong>Auth gate:</strong> Methods that require authentication call <code>TokenManager.validateOrRefresh(refreshTokenFn)</code> before performing the request.</li>
+      <li><strong>Return shapes:</strong> Most semantic methods return a <code>single</code> entity (e.g., <code>Post</code>, <code>User</code>) or <code>null</code>. Collections are returned via explicit pagination DTOs (e.g., <code>PaginatedCommentResponse</code>).</li>
+      <li><strong>Request typing:</strong> Methods set <code>expects: 'single'</code> where a single object is expected; unpaginated lists should use <code>expects: 'array'</code> when implemented.</li>
+      <li><strong>Caching:</strong> Some reads support per-call cache options (e.g., <code>getComments(..., { forceRefresh })</code>).</li>
+      <li><strong>Debugging:</strong> Each client uses a scoped <code>Logger</code> that can be enabled via the <code>debug</code> flag.</li>
+    </ul>
+  </details>
+</section>
+
+<section id="auth-semantics" class="card">
+  <h2>🧠 Semantic Methods</h2>
+  <p>Typed, purpose-specific methods built on top of the low-level HTTP client. Expand a section to view signatures and usage.</p>
+
+  <!-- AUTH.SESSION -->
+  <details open>
+    <summary><strong>auth.session</strong> — <em>SessionClient</em></summary>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Methods</h3>
+<pre><code>login(payload: LoginPayload): Promise&lt;LoginResponse&gt;
+isAuthenticated(): Promise&lt;boolean&gt;
+refreshToken(): Promise&lt;AuthResponse&gt;
+logout(): Promise&lt;void&gt;</code></pre>
+        <ul>
+          <li><code>login</code> POSTs credentials, returns <code>LoginResponse</code>, and persists tokens via <code>TokenManager.set()</code>.</li>
+          <li><code>isAuthenticated</code> checks token presence and time-to-expiration.</li>
+          <li><code>refreshToken</code> POSTs the stored refresh token and updates access token/expiry.</li>
+          <li><code>logout</code> clears tokens via <code>TokenManager.clear()</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example</h3>
+<pre><button class="btn copy" data-copy="ex-session-login">Copy</button><code id="ex-session-login">const ok = await sdk.auth.session.isAuthenticated();
+if (!ok) {
+  const res = await sdk.auth.session.login({
+    identifier: 'user@example.com',
+    password: 'password123',
+  });
+  // res.token.accessToken, res.token.refreshToken, res.token.expiresIn
+}
+</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <!-- AUTH.ACCOUNT -->
+  <details>
+    <summary><strong>auth.account</strong> — <em>AccountClient</em></summary>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Methods</h3>
+<pre><code>register(payload: RegisterPayload): Promise&lt;User | null&gt;
+getProfile(): Promise&lt;User | null&gt;</code></pre>
+        <ul>
+          <li><code>register</code> — public registration; does <strong>not</strong> require auth.</li>
+          <li><code>getProfile</code> — requires auth; validates/refreshes tokens before request.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example</h3>
+<pre><button class="btn copy" data-copy="ex-account">Copy</button><code id="ex-account">const me = await sdk.auth.account.getProfile();
+if (!me) {
+  // not logged in or profile not found
+}
+</code></pre>
+      </div>
+    </div>
+  </details>
+
+  
+
+  <details>
+    <summary><strong>Notes</strong></summary>
+    <ul>
+      <li>All method responses follow the DTOs defined under <code>types/dto</code> in the SDK.</li>
+      <li>When implementing new domains, follow the same pattern: inject <code>HttpClient</code>, pass <code>refreshTokenFn</code>, gate auth, and use <code>expects</code> appropriately.</li>
+      <li>Mocks: endpoints can be simulated via <code>mockHandlers</code> (e.g., <code>authMockHandlers</code>) using the SDK's mock adapter for testing.</li>
+    </ul>
+  </details>
+</section>
+
+      <section id="api-social" class="card">
+  <h2>👥 Social API Surface</h2>
+  <p>
+    The <code>SocialClient</code> namespaces social features into <code>feed</code>, <code>post</code>, and <code>follow</code>.
+    Each sub‑client uses the shared <code>HttpClient</code>, validates tokens via <code>TokenManager.validateOrRefresh()</code>,
+    and supports per‑call cache controls where applicable.
+  </p>
+
+  <div class="grid cols-1">
+    <div class="card">
+      <h3>Structure</h3>
+<pre><code>class SocialClient {
+  public feed: FeedClient;
+  public post: PostClient;               // extends BasePostAndCommentsClient
+  public follow: FollowClient;
+}
+</code></pre>
+      <ul>
+        <li><strong>feed</strong> — read feeds (me, following, global) with pagination and optional <code>forceRefresh</code>.</li>
+        <li><strong>post</strong> — create/edit/delete posts and manage comments (create, list).</li>
+        <li><strong>follow</strong> — follow/unfollow users and list followers/following.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Shared Behaviors</h3>
+      <ul>
+        <li><strong>Auth Gate:</strong> Methods marked as requiring auth call <code>TokenManager.validateOrRefresh(refreshTokenFn)</code> before requests.</li>
+        <li><strong>Typing:</strong> Methods set <code>expects: 'single'</code> when a single entity is returned; paginated responses use DTOs.</li>
+        <li><strong>Caching:</strong> Feeds support <code>cache: { forceRefresh }</code> to bypass cache on demand.</li>
+        <li><strong>Debug:</strong> Each client has a scoped <code>Logger</code> honoring the <code>debug</code> flag.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="semantics-social" class="card">
+  <h2>🧠 Semantic Methods — Social</h2>
+
+  <!-- FEED CLIENT -->
+  <details open>
+    <summary><strong>social.feed</strong> — <em>FeedClient</em></summary>
+    <div class="grid cols-1">
+      <div class="card">
+        <h3>Methods</h3>
+<pre><code>getMyFeed(
+  params?: { page?: number; take?: number },
+  forceRefresh = false,
+): Promise&lt;PaginatedFeedResponse&gt;
+
+getFollowingFeed(
+  params?: { page?: number; take?: number },
+  forceRefresh = false,
+): Promise&lt;PaginatedFeedResponse&gt;
+
+getGlobalFeed(
+  params?: { page?: number; take?: number },
+  forceRefresh = false,
+): Promise&lt;PaginatedFeedResponse&gt;
+</code></pre>
+        <ul>
+          <li>All feed reads require auth and validate/refresh tokens.</li>
+          <li>Pagination via <code>page</code> and <code>take</code>; default order is <code>DESC</code>.</li>
+          <li>Returns an empty, well‑formed page when the backend returns an invalid shape.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example</h3>
+<pre><button class="btn copy" data-copy="ex-feed">Copy</button><code id="ex-feed">// page 1, 10 items, bypass cache
+const my = await sdk.social.feed.getMyFeed({ page: 1, take: 10 }, true);
+
+// following feed (cached)
+const following = await sdk.social.feed.getFollowingFeed({ page: 2, take: 20 });
+
+// global feed
+const global = await sdk.social.feed.getGlobalFeed();
+</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <!-- FOLLOW CLIENT -->
+  <details>
+    <summary><strong>social.follow</strong> — <em>FollowClient</em></summary>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Methods</h3>
+<pre><code>followUser(userUuid: string): Promise&lt;void&gt;
+unfollowUser(userUuid: string): Promise&lt;void&gt;
+getFollowers&lt;T&gt;(): Promise&lt;T | null&gt;
+getFollowing&lt;T&gt;(): Promise&lt;T | null&gt;
+</code></pre>
+        <ul>
+          <li><code>followUser</code>/<code>unfollowUser</code> require auth and use POST/DELETE.</li>
+          <li><code>getFollowers</code> / <code>getFollowing</code> are typed as generic <code>T</code> to match your DTO shape.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example</h3>
+<pre><button class="btn copy" data-copy="ex-follow">Copy</button><code id="ex-follow">await sdk.social.follow.followUser('uuid-user-123');
+await sdk.social.follow.unfollowUser('uuid-user-123');
+
+// Explicit DTO typing
+interface FollowersDto { users: Array<{ id: string; username: string }>; }
+const followers = await sdk.social.follow.getFollowers<FollowersDto>();
+</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <!-- POST CLIENT (extends BasePostAndCommentsClient) -->
+  <details>
+    <summary><strong>social.post</strong> — <em>PostClient</em></summary>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Methods</h3>
+<pre><code>create(payload: CreatePostPayload): Promise&lt;Post | null&gt;
+like(postUuid: string): Promise&lt;Post | null&gt;
+unlike(postUuid: string): Promise&lt;Post | null&gt;
+edit&lt;T&gt;(params: { postUuid: string; payload: T }): Promise&lt;Post | null&gt;
+delete(postUuid: string): Promise&lt;boolean&gt;
+addComment(params: { postUuid: string; content: string }): Promise&lt;Comment | null&gt;
+getComments(
+  postUuid: string,
+  options?: { page?: number; take?: number; forceRefresh?: boolean },
+): Promise&lt;PaginatedCommentResponse&gt;
+</code></pre>
+        <ul>
+          <li>Auth‑gated methods validate/refresh tokens prior to calling the API.</li>
+          <li><code>getComments</code> uses <code>URLSearchParams</code> and can bypass cache per call.</li>
+          <li>Warns and returns an empty, well‑formed page on invalid backend shapes.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example</h3>
+<pre><button class="btn copy" data-copy="ex-post">Copy</button><code id="ex-post">const post = await sdk.social.post.create({ text: 'Hello Turisteo!' });
+await sdk.social.post.like(post!.id);
+await sdk.social.post.addComment({ postUuid: post!.id, content: '🔥' });
+const comments = await sdk.social.post.getComments(post!.id, { page: 1, take: 10 });
+const ok = await sdk.social.post.delete(post!.id);
+</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary><strong>Mocks</strong></summary>
+    <p>
+      For testing, endpoints can be simulated via the mock adapter using <code>MockHandlerMap</code>.
+      Example handlers show paginating feeds and filtering comments by <code>postId</code>.
+    </p>
+<pre><button class="btn copy" data-copy="ex-mock">Copy</button><code id="ex-mock">export const userFeedMockHandlers: MockHandlerMap = {
+  [`GET ${'${API_PATHS.social.feed.me}'}`]: async (db, config) => {/* paginate */},
+  [`POST ${'${API_PATHS.social.post.create}'}`]: (db, config) => db.create('posts', config.body),
+  [`GET ${'${API_PATHS.social.post.comments(":postId")}'}`]: async (db, config) => {/* filter by postId */},
+};
+</code></pre>
+  </details>
+</section>
+
+
+    </main>
+  </div>
+
+  <script>
+    // year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // copy buttons
+    document.querySelectorAll('.btn.copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-copy');
+        const el = document.getElementById(id);
+        if (!el) return;
+        const text = el.innerText || el.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const prev = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(() => (btn.textContent = prev), 1200);
+        });
+      });
+    });
+
+    // mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    function toggleSidebar() { sidebar.classList.toggle('open'); }
+    window.toggleSidebar = toggleSidebar;
+
+    // simple scrollspy
+    const links = Array.from(document.querySelectorAll('.nav a'));
+    const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const i = sections.indexOf(entry.target);
+        if (i >= 0) {
+          const link = links[i];
+          if (entry.isIntersecting) link.classList.add('active');
+          else link.classList.remove('active');
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+
+    sections.forEach(s => s && obs.observe(s));
+
+    // focus search with /
+    const search = document.getElementById('search');
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== search) {
+        e.preventDefault(); search.focus();
+      }
+    });
+  </script>
+</body>
+</html>
